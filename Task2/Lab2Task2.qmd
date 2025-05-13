@@ -1,7 +1,7 @@
 ---
 install.packages("tidyverse")format: html
 editor: visual
-author: Firebrick P3
+author: Firebrick (P3) 
 ---
 
 ## Task 2
@@ -183,4 +183,31 @@ dfr_tidy <- dfr_combined %>%
 # Display the final tidy tibble
 print(dfr_tidy)
 
+
 ```
+
+## Match with Reference Data
+
+```{r}
+sg_ref <- readr::read_csv(
+"sg_5yr_cohorts.csv",
+col_types = cols(sex = col_factor(levels = c("Male", "Female")))
+)
+waldo::compare(dfr_tidy, sg_ref, tolerance = 1e-12)
+```
+
+## Task 3
+1. Key takeaway:
+A key takeaway from this lab was the sheer efficiency and readability of the tidyverse for data manipulation. Seeing how functions like pivot_longer, mutate, and select could systematically transform messy data into a structured format was impactful, especially when imagining doing this with base R or manually.
+
+2. Challenges:
+The logic for handling the 'Years & Over' data for the oldest cohorts in Task 2 presented a hurdle. My initial thought was to perform complex conditional replacements, but understanding that parse_number() and then filtering could achieve the desired interpretation more elegantly took some time to click.
+
+3. AI assistance:
+I utilized ChatGPT to help debug specific error messages, such as when an object was not found or when a dplyr function wasn't behaving as expected. It was also helpful for suggesting alternative tidyverse functions for certain tasks, like different ways to extract numbers from strings, which broadened my understanding of available tools.
+
+4. Teamwork:
+Our team collaborated by first discussing the overall approach for each task and then dividing the coding sections; for instance, one person might focus on initial data import and cleaning, while another tackled the pivoting and final formatting. A key strength was our communication when we hit roadblocks, using [shared document/chat/pair programming] to troubleshoot together. An area for improvement could be to establish a more consistent coding style from the outset to make merging code or reviewing each other's work even smoother.
+
+5. Additional feedback: 
+None
