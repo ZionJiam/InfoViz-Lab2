@@ -1,7 +1,7 @@
 ---
 install.packages("tidyverse")format: html
 editor: visual
-author: Zion Jiam Tzi Yang
+author: Firebrick P3
 ---
 
 ## Task 2
@@ -157,21 +157,30 @@ dfr_combined
 
 ```{r}
 dfr_tidy <- dfr_combined %>%
+  # Pivot the year columns.
   pivot_longer(
-    cols = -c(`Data Series`, sex, age),  # keep these as is
-    names_to = "year",
-    values_to = "pop"
-  )
+    cols = all_of(as.character(seq(1960, 2020, by = 10))), # Explicitly name year columns to pivot
+    names_to = "year_char",  # Store the year names (characters) temporarily
+    values_to = "pop"        # Population values (already numeric from previous step)
+  ) %>%
+  # Convert data types to match target format:
+  # - year: character from pivot to numeric
+  # - sex: character to factor with specified levels
+  mutate(
+    year = as.numeric(year_char),
+    sex = factor(sex, levels = c("Male", "Female"))
+  ) %>%
 
-# Remove NA rows
-dfr_tidy <- dfr_tidy%>%
-  drop_na()
+  # Select the final columns in the desired order.
+  select(age, sex, year, pop) %>%
 
-# Sort by Age
-dfr_tidy <- dfr_tidy %>%
-  select(-`Data Series`)%>%
-  arrange(age)
+  # Remove NAs in these essential columns
+  drop_na() %>%
 
-dfr_tidy 
+  # Sort the data as specified: by age, then sex (Male before Female), then year
+  arrange(age, sex, year)
+
+# Display the final tidy tibble
+print(dfr_tidy)
 
 ```
