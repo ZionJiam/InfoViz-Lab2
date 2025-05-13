@@ -1,0 +1,177 @@
+---
+install.packages("tidyverse")format: html
+editor: visual
+author: Zion Jiam Tzi Yang
+---
+
+## Task 2
+
+### Import Libraries
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(dplyr)
+```
+
+### Read Excel Files and Split by Male and Female
+
+```{r}
+
+dfr <- read_excel("outputFile.xlsx", sheet = "T4", skip = 10)
+colnames(dfr)
+
+dfr_row <- slice(dfr, 0, 27:50, 52:75)
+
+# Split the data by Sex
+dfr_male <- dfr %>% slice(0, 27:50)
+dfr_female <- dfr %>% slice(52:75)
+
+```
+
+### Create New DataFrame
+
+```{r}
+# Dataframe Header
+dfr_male_year <- select(dfr_male, `Data Series`, `1960`, `1970`, `1980`, `1990`, `2000`, `2010`, `2020`)
+colnames(dfr_male_year)
+dfr_female_year <- select(dfr_female, `Data Series`, `1960`, `1970`, `1980`, `1990`, `2000`, `2010`, `2020`)
+colnames(dfr_female)
+
+
+dfr_male_year
+dfr_female_year
+```
+
+### Create replacement Mapping
+
+```{r}
+# Define mapping of year -> list(target row, replacement row)
+replacement_map <- list(
+  "1960" = list(target = "70 - 74 Years", replacement = "70 Years & Over"),
+  "1970" = list(target = "80 - 84 Years", replacement = "80 Years & Over"),
+  "1980" = list(target = "85 - 89 Years", replacement = "85 Years & Over"),
+  "1990" = list(target = "85 - 89 Years", replacement = "85 Years & Over")
+)
+```
+
+### Create Function to apply replacement to target
+
+```{r}
+
+apply_replacement <- function(df, year_col, target_label, replacement_label) {
+  replacement_value <- df %>%
+    filter(`Data Series` == replacement_label) %>%
+    pull(!!sym(year_col)) %>%
+    first()
+  
+  df %>%
+    mutate(!!year_col := if_else(
+      `Data Series` == target_label,
+      replacement_value,
+      !!sym(year_col)
+    ))
+}
+
+```
+
+### Loop Map with Function
+
+```{r}
+
+# Apply to both male and female data
+for (year in names(replacement_map)) {
+  dfr_male_year <- apply_replacement(dfr_male_year,
+                                     year,
+                                     replacement_map[[year]]$target,
+                                     replacement_map[[year]]$replacement)
+  
+  dfr_female_year <- apply_replacement(dfr_female_year,
+                                       year,
+                                       replacement_map[[year]]$target,
+                                       replacement_map[[year]]$replacement)
+}
+
+dfr_male_year
+
+dfr_male_year %>% filter(`Data Series` %in% c("70 - 74 Years", "80 - 84 Years", "85 - 89 Years"))
+dfr_female_year %>% filter(`Data Series` %in% c("70 - 74 Years", "80 - 84 Years", "85 - 89 Years"))
+
+
+```
+
+### Remove all "& Over" but not "90 & Over"
+
+```{r}
+
+dfr_male_year <- dfr_male_year %>%
+  filter(!(str_detect(`Data Series`, "& Over") & `Data Series` != "90 Years & Over"))
+
+dfr_female_year <- dfr_female_year %>%
+  filter(!(str_detect(`Data Series`, "& Over") & `Data Series` != "90 Years & Over"))
+```
+
+### Add sex to column
+
+```{r}
+
+# Add sex column before pivoting
+dfr_male_long <- dfr_male_year %>%
+  mutate(sex = "Male")
+
+dfr_female_long <- dfr_female_year %>%
+  mutate(sex = "Female")
+
+```
+
+### Combine the data rows back
+
+```{r}
+# Bind the rows together
+dfr_combined <- bind_rows(dfr_male_long, dfr_female_long)
+
+```
+
+### Change char numerical data to double numerical data
+
+```{r}
+# Change to numeric data for all numbers values
+dfr_combined <- dfr_combined %>%
+  mutate(across(c(`1960`, `1970`, `1980`, `1990`, `2000`, `2010`, `2020`), as.numeric))
+
+dfr_combined
+```
+
+### Extract Age base on Data Series string first number
+
+```{r}
+# Clean age column (extract lower age limit from "70 - 74 Years", etc.)
+dfr_combined <- dfr_combined %>%
+  mutate(age = str_extract(`Data Series`, "^\\d+")) %>%  # extract first number
+  mutate(age = as.numeric(age)) 
+
+dfr_combined
+```
+
+### Pivot the Year and Population and Drop Data Series column and NA rows
+
+```{r}
+dfr_tidy <- dfr_combined %>%
+  pivot_longer(
+    cols = -c(`Data Series`, sex, age),  # keep these as is
+    names_to = "year",
+    values_to = "pop"
+  )
+
+# Remove NA rows
+dfr_tidy <- dfr_tidy%>%
+  drop_na()
+
+# Sort by Age
+dfr_tidy <- dfr_tidy %>%
+  select(-`Data Series`)%>%
+  arrange(age)
+
+dfr_tidy 
+
+```
